@@ -101,7 +101,7 @@ export default function Home() {
       publicKey: {
         rp: {
           id: "localhost",
-          name: "Turnkey Viem Passkey Demo",
+          name: "Escher passkey",
         },
         user: {
           name: subOrgName,
@@ -246,6 +246,7 @@ export default function Home() {
             className={styles.form}
             onSubmit={subOrgFormSubmit(createSubOrgAndWallet)}
           >
+            <input type="email" placeholder="Your email address" />
             <input
               className={styles.button}
               type="submit"
@@ -323,7 +324,7 @@ export default function Home() {
 
       {(
         (wallet !== null) &&
-        (escherApp?.publicClient !== undefined) && 
+        (escherApp?.publicClient !== undefined) &&
         (escherApp?.walletClient !== undefined)
       ) && (
           <AppStorage
