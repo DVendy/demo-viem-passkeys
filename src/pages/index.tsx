@@ -4,10 +4,14 @@ import Image from "next/image";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { useState, useEffect } from "react";
-import { createWalletClient, http } from "viem";
+import { createPublicClient, createWalletClient, http, PublicClient, WalletClient } from "viem";
 import { sepolia } from "viem/chains";
 import styles from "./index.module.css";
 import { TWalletDetails } from "../types";
+import useStorageContract from "@/hooks/useStorageContract";
+import AppStorage from "@/components/appStorage";
+import { injected, useAccount, useConnect, useDisconnect } from "wagmi";
+import { useEscherApp } from "@/components/appProvider";
 
 type subOrgFormData = {
   subOrgName: string;
@@ -30,6 +34,7 @@ const humanReadableDateTime = (): string => {
 
 export default function Home() {
   const { turnkey, passkeyClient } = useTurnkey();
+  const escherApp = useEscherApp();
 
   // Wallet is used as a proxy for logged-in state
   const [wallet, setWallet] = useState<TWalletState>(null);
@@ -50,25 +55,37 @@ export default function Home() {
     })();
   });
 
+  useEffect(() => {
+    (async () => {
+      if (wallet) {
+        const viemAccount = await createAccount({
+          client: passkeyClient!,
+          organizationId: wallet.subOrgId,
+          signWith: wallet.address,
+          ethereumAddress: wallet.address,
+        });
+
+        escherApp.setPublicClient(
+          createPublicClient({
+            chain: sepolia,
+            transport: http()
+          }));
+
+        escherApp.setWalletClient(createWalletClient({
+          account: viemAccount,
+          chain: sepolia,
+          transport: http()
+        }));
+      }
+    })();
+  }, [wallet]);
+
   const signMessage = async (data: signingFormData) => {
-    if (!wallet) {
+    if (!wallet || !escherApp.walletClient) {
       throw new Error("wallet not found");
     }
 
-    const viemAccount = await createAccount({
-      client: passkeyClient!,
-      organizationId: wallet.subOrgId,
-      signWith: wallet.address,
-      ethereumAddress: wallet.address,
-    });
-
-    const viemClient = createWalletClient({
-      account: viemAccount,
-      chain: sepolia,
-      transport: http(),
-    });
-
-    const signedMessage = await viemClient.signMessage({
+    const signedMessage = await (escherApp.walletClient as any).signMessage({
       message: data.messageToSign,
     });
 
@@ -196,6 +213,7 @@ export default function Home() {
           </div>
         )}
       </div>
+
       {!wallet && (
         <div>
           <h2>Create a new wallet</h2>
@@ -261,6 +279,7 @@ export default function Home() {
           </form>
         </div>
       )}
+
       {wallet !== null && (
         <div>
           <h2>Now let&apos;s sign something!</h2>
@@ -301,6 +320,17 @@ export default function Home() {
           </form>
         </div>
       )}
+
+      {(
+        (wallet !== null) &&
+        (escherApp?.publicClient !== undefined) && 
+        (escherApp?.walletClient !== undefined)
+      ) && (
+          <AppStorage
+            publicClient={escherApp.publicClient}
+            walletClient={escherApp.walletClient}
+          />
+        )}
     </main>
   );
 }

@@ -46,7 +46,7 @@ export default async function createUser(
       rootQuorumThreshold: 1,
       rootUsers: [
         {
-          userName: "New user",
+          userName: "Escher - Liquid Staking App",
           apiKeys: [],
           authenticators: [
             {
